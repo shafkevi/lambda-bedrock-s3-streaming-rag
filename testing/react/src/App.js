@@ -1,6 +1,5 @@
 import "./styles.css";
 import React, { useState } from "react";
-import { fetchEventSource } from "@microsoft/fetch-event-source";
 import { SignatureV4 } from "@smithy/signature-v4";
 import { Sha256 } from "@aws-crypto/sha256-js";
 
@@ -22,7 +21,6 @@ export default function App() {
       credentials,
       sha256: Sha256
     });
-
     const apiUrl = new URL(process.env.REACT_APP_LAMBDA_ENDPOINT_URL);
 
     const query = document.getElementById("searchQuery").value;
@@ -31,9 +29,8 @@ export default function App() {
       query: query,
       // Can use any Bedrock available models
       model: "anthropic.claude-instant-v1",
-      // This is required for the @microsoft/fetch-event-source library to understand the streaming response
-      streamingFormat: "fetch-event-source"
     });
+    
     let signed = await sigv4.sign({
       body,
       method: "POST",
@@ -46,32 +43,27 @@ export default function App() {
       }
     });
 
-    await fetchEventSource(apiUrl.origin, {
-      method: signed.method,
-      headers: signed.headers,
-      body,
-      onopen(res) {
-        if (res.ok && res.status === 200) {
-          console.log("Connection made ", res);
-        } else if (
-          res.status >= 400 &&
-          res.status < 500 &&
-          res.status !== 429
-        ) {
-          console.log("Client-side error ", res);
-        }
-      },
-      onmessage(event) {
-        setChat((data) => [...data, event.data]);
-        // Important to set the data this way, otherwise old data may be overwritten if the stream is too fast
-      },
-      onclose() {
-        console.log("Connection closed by the server");
-      },
-      onerror(err) {
-        console.log("There was an error from server", err);
+    try {
+      let response = await fetch(apiUrl, {
+        method: signed.method,
+        headers: signed.headers,
+        body: body,
+        mode: "cors"
+      });
+
+      const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        setChat((data) => [...data, value]);
       }
-    });
+    }
+    catch (err) {
+      console.log('Something went wrong');
+      console.log(err);
+      return;
+    }
+
   };
 
   return (
