@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: MIT-0
 import { LanceDB } from "langchain/vectorstores/lancedb";
 import { BedrockEmbeddings } from "langchain/embeddings/bedrock";
 import { connect } from "vectordb"; // LanceDB

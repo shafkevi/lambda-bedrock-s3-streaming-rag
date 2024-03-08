@@ -1,3 +1,5 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: MIT-0
 import "./styles.css";
 import React, { useState } from "react";
 import { SignatureV4 } from "@smithy/signature-v4";
